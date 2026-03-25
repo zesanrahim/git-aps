@@ -37,3 +37,15 @@ The `config.Load()` function reads from `GIT_APS_CONFIG` env var. Tests use `t.S
 The `cli.Parse()` function reads from `os.Args` directly. Tests must temporarily replace `os.Args` and restore it via `t.Cleanup`. Do not use `t.Parallel()` in cli tests since `os.Args` is process-global.
 
 **Why:** Multiple parallel tests modifying `os.Args` simultaneously would race.
+
+When writing loop-based rules tests (defer_loop, perf_string_concat, perf_regex_loop), content lines that are "inside" the loop must use a real tab character as the leading indent character. Use double-quoted strings with `\t`, not raw string literals.
+
+**Why:** `nestingDepth()` in deep_nesting.go counts leading tab characters. A raw string literal like `` `\tre := ...` `` has a literal backslash-t, not a tab, so the line gets depth 0 and the rule sees it as outside the loop.
+
+**How to apply:** Write `makeAddedLine("\tre := ...", 11)` with a double-quoted string, not a backtick string.
+
+The `secrets.go` patterns use `[:=]` (a single-char class: colon OR equals). This means they match `password = "..."` or `api_key: "..."` but NOT Go's `:=` operator (which is two chars: colon then equals). Tests for SecretsRule must use `=` or `:` assignments, not `:=`.
+
+**Why:** After matching `:` from `:=`, the pattern expects `\s*["']` but finds `=` next.
+
+**How to apply:** Use `api_key = "..."` (Python/JSON style) in secrets test fixtures, not `apiKey := "..."` (Go style).

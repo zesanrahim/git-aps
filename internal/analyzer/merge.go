@@ -1,6 +1,9 @@
 package analyzer
 
-import "sort"
+import (
+	"sort"
+	"strconv"
+)
 
 func MergeFindings(sources ...[]Finding) []Finding {
 	seen := map[string]bool{}
@@ -8,7 +11,7 @@ func MergeFindings(sources ...[]Finding) []Finding {
 
 	for _, findings := range sources {
 		for _, f := range findings {
-			key := f.File + ":" + f.Rule + ":" + string(rune(f.Line))
+			key := f.File + ":" + f.Rule + ":" + strconv.Itoa(f.Line)
 			if seen[key] {
 				continue
 			}

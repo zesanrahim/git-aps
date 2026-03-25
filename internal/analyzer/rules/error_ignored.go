@@ -12,6 +12,9 @@ type ErrorIgnoredRule struct{}
 func (r *ErrorIgnoredRule) Name() string { return "error_ignored" }
 
 func (r *ErrorIgnoredRule) Check(file git.FileDiff) []analyzer.Finding {
+	if DetectLanguage(file.Path) != LangGo {
+		return nil
+	}
 	var findings []analyzer.Finding
 	for _, hunk := range file.Hunks {
 		for _, line := range hunk.Lines {

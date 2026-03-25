@@ -19,17 +19,19 @@ type DiffConfig struct {
 }
 
 type RuleConfig struct {
-	Enabled   bool `yaml:"enabled"`
-	Threshold int  `yaml:"threshold,omitempty"`
-	MaxDepth  int  `yaml:"max_depth,omitempty"`
-	MaxLines  int  `yaml:"max_lines,omitempty"`
-	MaxParams int  `yaml:"max_params,omitempty"`
+	Enabled       bool `yaml:"enabled"`
+	Threshold     int  `yaml:"threshold,omitempty"`
+	MaxDepth      int  `yaml:"max_depth,omitempty"`
+	MaxLines      int  `yaml:"max_lines,omitempty"`
+	MaxParams     int  `yaml:"max_params,omitempty"`
+	MaxComplexity int  `yaml:"max_complexity,omitempty"`
 }
 
 type AIConfig struct {
-	Enabled bool   `yaml:"enabled"`
-	Model   string `yaml:"model"`
-	BaseURL string `yaml:"base_url"`
+	Enabled    bool   `yaml:"enabled"`
+	Model      string `yaml:"model"`
+	BaseURL    string `yaml:"base_url"`
+	MaxRetries int    `yaml:"max_retries"`
 }
 
 type OutputConfig struct {
@@ -70,17 +72,27 @@ func defaults() Config {
 	return Config{
 		Diff: DiffConfig{Mode: "staged"},
 		Rules: map[string]RuleConfig{
-			"magic_numbers": {Enabled: true, Threshold: 2},
-			"deep_nesting":  {Enabled: true, MaxDepth: 3},
-			"long_functions": {Enabled: true, MaxLines: 50},
-			"many_params":   {Enabled: true, MaxParams: 5},
-			"todo_comments": {Enabled: true},
-			"error_ignored": {Enabled: true},
+			"magic_numbers":        {Enabled: true, Threshold: 2},
+			"deep_nesting":         {Enabled: true, MaxDepth: 3},
+			"long_functions":       {Enabled: true, MaxLines: 50},
+			"many_params":          {Enabled: true, MaxParams: 5},
+			"todo_comments":        {Enabled: true},
+			"error_ignored":        {Enabled: true},
+			"error_wrap":           {Enabled: true},
+			"defer_loop":           {Enabled: true},
+			"type_assert":          {Enabled: true},
+			"goroutine_ctx":        {Enabled: true},
+			"secrets":              {Enabled: true},
+			"sql_injection":        {Enabled: true},
+			"cognitive_complexity": {Enabled: true, MaxComplexity: 15},
+			"perf_string_concat":   {Enabled: true},
+			"perf_regex_loop":      {Enabled: true},
 		},
 		AI: AIConfig{
-			Enabled: true,
-			Model:   "gemini-2.5-flash",
-			BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+			Enabled:    true,
+			Model:      "gemini-2.5-flash",
+			BaseURL:    "https://generativelanguage.googleapis.com/v1beta/openai",
+			MaxRetries: 3,
 		},
 	}
 }

@@ -25,7 +25,11 @@ func TestNewEngine_AllDefaultRulesRegistered(t *testing.T) {
 	for _, r := range engine.rules {
 		names[r.Name()] = true
 	}
-	required := []string{"magic_numbers", "deep_nesting", "long_functions", "many_params", "todo_comments", "error_ignored"}
+	required := []string{
+		"magic_numbers", "deep_nesting", "long_functions", "many_params", "todo_comments", "error_ignored",
+		"error_wrap", "defer_loop", "type_assert", "goroutine_ctx", "secrets", "sql_injection",
+		"cognitive_complexity", "perf_string_concat", "perf_regex_loop",
+	}
 	for _, n := range required {
 		if !names[n] {
 			t.Errorf("expected rule %q to be registered", n)

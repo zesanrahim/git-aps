@@ -63,6 +63,46 @@ func NewEngine(rulesCfg map[string]config.RuleConfig, customCfg ...[]config.Cust
 		rules = append(rules, &ErrorIgnoredRule{})
 	}
 
+	if rc, ok := rulesCfg["error_wrap"]; !ok || rc.Enabled {
+		rules = append(rules, &ErrorWrapRule{})
+	}
+
+	if rc, ok := rulesCfg["defer_loop"]; !ok || rc.Enabled {
+		rules = append(rules, &DeferLoopRule{})
+	}
+
+	if rc, ok := rulesCfg["type_assert"]; !ok || rc.Enabled {
+		rules = append(rules, &TypeAssertRule{})
+	}
+
+	if rc, ok := rulesCfg["goroutine_ctx"]; !ok || rc.Enabled {
+		rules = append(rules, &GoroutineCtxRule{})
+	}
+
+	if rc, ok := rulesCfg["secrets"]; !ok || rc.Enabled {
+		rules = append(rules, &SecretsRule{})
+	}
+
+	if rc, ok := rulesCfg["sql_injection"]; !ok || rc.Enabled {
+		rules = append(rules, &SQLInjectionRule{})
+	}
+
+	if rc, ok := rulesCfg["cognitive_complexity"]; !ok || rc.Enabled {
+		threshold := 15
+		if ok && rc.MaxComplexity > 0 {
+			threshold = rc.MaxComplexity
+		}
+		rules = append(rules, &CognitiveComplexityRule{Threshold: threshold})
+	}
+
+	if rc, ok := rulesCfg["perf_string_concat"]; !ok || rc.Enabled {
+		rules = append(rules, &StringConcatRule{})
+	}
+
+	if rc, ok := rulesCfg["perf_regex_loop"]; !ok || rc.Enabled {
+		rules = append(rules, &RegexLoopRule{})
+	}
+
 	if len(customCfg) > 0 {
 		for _, cr := range customCfg[0] {
 			if cr.Name == "" || cr.Pattern == "" {

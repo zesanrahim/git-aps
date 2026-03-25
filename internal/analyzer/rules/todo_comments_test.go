@@ -106,14 +106,38 @@ func TestTodoCommentRule_OnlyOneMatchPerLine(t *testing.T) {
 	}
 }
 
-func TestTodoCommentRule_InCode(t *testing.T) {
+func TestTodoCommentRule_SkipsCodeStrings(t *testing.T) {
 	t.Parallel()
 	rule := &TodoCommentRule{}
 	diff := makeFileDiff("foo.go",
 		makeAddedLine(`fmt.Println("TODO: remove this debug")`, 8),
 	)
 	findings := rule.Check(diff)
+	if len(findings) != 0 {
+		t.Errorf("expected no findings for TODO in string literal, got %d", len(findings))
+	}
+}
+
+func TestTodoCommentRule_SkipsVariableNames(t *testing.T) {
+	t.Parallel()
+	rule := &TodoCommentRule{}
+	diff := makeFileDiff("foo.go",
+		makeAddedLine("todoCount := 5", 8),
+	)
+	findings := rule.Check(diff)
+	if len(findings) != 0 {
+		t.Errorf("expected no findings for variable name containing TODO, got %d", len(findings))
+	}
+}
+
+func TestTodoCommentRule_InlineComment(t *testing.T) {
+	t.Parallel()
+	rule := &TodoCommentRule{}
+	diff := makeFileDiff("foo.go",
+		makeAddedLine("x := 1 // TODO: cleanup", 8),
+	)
+	findings := rule.Check(diff)
 	if len(findings) != 1 {
-		t.Errorf("expected 1 finding for TODO in string, got %d", len(findings))
+		t.Errorf("expected 1 finding for inline TODO comment, got %d", len(findings))
 	}
 }

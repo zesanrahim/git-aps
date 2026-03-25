@@ -128,12 +128,16 @@ func TestContainsMagicNumber(t *testing.T) {
 		{"negative large", "delta := -100", 2, true},
 		{"zero", "x := 0", 2, false},
 		{"one", "x := 1", 2, false},
+		{"ip address", `addr := "192.168.1.100"`, 2, false},
+		{"hex literal", "mask := 0xFF", 2, false},
+		{"comment with number", "// timeout is 300", 2, false},
+		{"array index", "items[3]", 2, false},
 	}
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got := containsMagicNumber(tc.line, tc.threshold)
+			got := containsMagicNumber(tc.line, tc.threshold, LangGo)
 			if got != tc.want {
 				t.Errorf("containsMagicNumber(%q, %d) = %v, want %v", tc.line, tc.threshold, got, tc.want)
 			}

@@ -22,7 +22,39 @@ END_FIX
 
 IMPORTANT: The FIX block must contain real, copy-pasteable code. Never use comments to describe what code should look like. Write the actual implementation.
 
+Example of a well-formatted response:
+
+FINDING
+FILE: internal/server/handler.go
+LINE: 42
+END_LINE: 42
+SEVERITY: HIGH
+RULE: nil_deref
+DESCRIPTION: Possible nil pointer dereference — user.Profile accessed without nil check
+SUGGESTION: Add a nil check before accessing Profile fields
+FIX:
+if user.Profile != nil {
+	name = user.Profile.DisplayName
+}
+END_FIX
+
+FINDING
+FILE: internal/server/handler.go
+LINE: 58
+END_LINE: 60
+SEVERITY: MED
+RULE: error_handling
+DESCRIPTION: Error from database query is logged but not returned — caller won't know about failure
+SUGGESTION: Return the error to the caller instead of only logging
+FIX:
+if err != nil {
+	return nil, fmt.Errorf("fetching user: %w", err)
+}
+END_FIX
+
 If no issues found in the changed lines, respond with: NO_ISSUES
+
+Do NOT flag issues already caught by standard linting tools (unused variables, missing semicolons, formatting). Focus on logic, design, and security issues that require human-level understanding.
 
 Flag these categories in the CHANGED code:
 

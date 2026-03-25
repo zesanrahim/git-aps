@@ -14,7 +14,7 @@ var overriddenHookPath string
 
 const hookScript = `#!/bin/sh
 # git-aps hook — auto-installed, do not edit
-git-aps --format text --mode staged --min-severity high
+git-aps --format text --mode staged --min-severity high || true
 `
 
 func gitRoot() (string, error) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/zesanrahim/git-aps/internal/analyzer"
@@ -12,18 +13,20 @@ import (
 )
 
 type Config struct {
-	Model   string
-	BaseURL string
-	APIKey  string
-	Debug   bool
+	Model      string
+	BaseURL    string
+	APIKey     string
+	Debug      bool
+	MaxRetries int
 }
 
 func DefaultConfig() Config {
 	apiKey := os.Getenv("AI_API_KEY")
 	return Config{
-		Model:   "gemini-2.5-flash",
-		BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
-		APIKey:  apiKey,
+		Model:      "gemini-2.5-flash",
+		BaseURL:    "https://generativelanguage.googleapis.com/v1beta/openai",
+		APIKey:     apiKey,
+		MaxRetries: 3,
 	}
 }
 
@@ -33,6 +36,9 @@ type AIAnalyzer struct {
 }
 
 func New(cfg Config) *AIAnalyzer {
+	if cfg.MaxRetries <= 0 {
+		cfg.MaxRetries = 3
+	}
 	ocfg := openai.DefaultConfig(cfg.APIKey)
 	ocfg.BaseURL = cfg.BaseURL
 	return &AIAnalyzer{
@@ -70,17 +76,31 @@ func (a *AIAnalyzer) analyzeFile(diff git.FileDiff) ([]analyzer.Finding, error) 
 		fmt.Fprintf(os.Stderr, "File content length: %d bytes\n", len(fileContent))
 	}
 
-	resp, err := a.client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model: a.config.Model,
-			Messages: []openai.ChatCompletionMessage{
-				{Role: openai.ChatMessageRoleSystem, Content: systemPrompt},
-				{Role: openai.ChatMessageRoleUser, Content: prompt},
+	var resp openai.ChatCompletionResponse
+	var err error
+	for attempt := 0; attempt < a.config.MaxRetries; attempt++ {
+		resp, err = a.client.CreateChatCompletion(
+			context.Background(),
+			openai.ChatCompletionRequest{
+				Model: a.config.Model,
+				Messages: []openai.ChatCompletionMessage{
+					{Role: openai.ChatMessageRoleSystem, Content: systemPrompt},
+					{Role: openai.ChatMessageRoleUser, Content: prompt},
+				},
+				Temperature: 0.3,
 			},
-			Temperature: 0.3,
-		},
-	)
+		)
+		if err == nil {
+			break
+		}
+		if !isRetryableError(err) {
+			return nil, err
+		}
+		if attempt < a.config.MaxRetries-1 {
+			backoff := time.Duration(1<<uint(attempt)) * time.Second
+			time.Sleep(backoff)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +118,8 @@ func (a *AIAnalyzer) analyzeFile(diff git.FileDiff) ([]analyzer.Finding, error) 
 	if err != nil {
 		return nil, err
 	}
+
+	findings = validateFindings(findings, diff)
 
 	fileLines := strings.Split(fileContent, "\n")
 	for i := range findings {
@@ -122,6 +144,47 @@ func (a *AIAnalyzer) analyzeFile(diff git.FileDiff) ([]analyzer.Finding, error) 
 	}
 
 	return findings, nil
+}
+
+func validateFindings(findings []analyzer.Finding, diff git.FileDiff) []analyzer.Finding {
+	addedLines := make(map[int]bool)
+	maxLine := 0
+	for _, hunk := range diff.Hunks {
+		for _, line := range hunk.Lines {
+			if line.Type == git.LineAdded {
+				addedLines[line.NewNum] = true
+			}
+			if line.NewNum > maxLine {
+				maxLine = line.NewNum
+			}
+		}
+	}
+
+	var valid []analyzer.Finding
+	for _, f := range findings {
+		if f.Line < 1 {
+			continue
+		}
+		if f.Description == "" || f.Rule == "" {
+			continue
+		}
+		if maxLine > 0 && f.Line > maxLine {
+			continue
+		}
+		valid = append(valid, f)
+	}
+	return valid
+}
+
+func isRetryableError(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "429") ||
+		strings.Contains(msg, "500") ||
+		strings.Contains(msg, "502") ||
+		strings.Contains(msg, "503") ||
+		strings.Contains(msg, "504") ||
+		strings.Contains(msg, "rate limit") ||
+		strings.Contains(msg, "temporarily")
 }
 
 func readFullFile(path string) string {

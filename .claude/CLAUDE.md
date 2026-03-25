@@ -6,7 +6,7 @@ A Go TUI application that analyzes git diffs for code anti-patterns using both s
 ## Tech Stack
 - **Language:** Go
 - **TUI:** Bubbletea + Lipgloss (charmbracelet)
-- **AI Model:** Configurable via OpenAI-compatible API (default: Gemini)
+- **AI Model:** Configurable via OpenAI-compatible API (default: Gemini 2.5 Flash)
 - **AI SDK:** github.com/sashabaranov/go-openai
 - **Config:** YAML (.git-aps.yaml)
 
@@ -20,7 +20,7 @@ internal/
   git/                # Git operations (diff parsing, file reading)
   analyzer/           # Anti-pattern detection
     rules/            # Static rule-based checks + custom regex rules
-    ai/               # AI-powered analysis
+    ai/               # AI-powered analysis (retry logic, finding validation)
   ui/                 # Bubbletea TUI (models, views, styles)
   fixer/              # Auto-apply AI-generated fixes
   config/             # Config loading (.git-aps.yaml)
@@ -44,15 +44,37 @@ internal/
 8. Exit summary shows applied/skipped/remaining counts
 
 ### Static Rules (built-in)
-- Magic numbers (configurable threshold)
-- Deep nesting (configurable max depth)
-- Long functions (configurable max lines)
-- TODO/FIXME/HACK comments
-- Unused error returns (Go-specific)
-- God functions (configurable max parameters)
+
+**General (all languages):**
+- Magic numbers (configurable threshold, skips IPs/versions/hex/indices/strings)
+- Deep nesting (configurable max depth, skips comments/blanks/closing braces)
+- Long functions (configurable max code lines, excludes blank/comment lines)
+- TODO/FIXME/HACK/XXX comments (only in comment context, not variable names)
+- Cognitive complexity (configurable threshold, nesting-weighted scoring)
+
+**Go-specific:**
+- Unused error returns (`_ = err` patterns)
+- Error wrapping without %w (`fmt.Errorf` with %v/%s instead of %w)
+- Defer in loops (resource leak risk)
+- Unsafe type assertions (without comma-ok check)
+- Goroutine without context (missing ctx propagation)
+- God functions (configurable max parameters, paren-depth-aware counting)
+
+**Security (all languages):**
+- Hardcoded secrets (API keys, passwords, tokens, private keys)
+- SQL injection (string concat/formatting in SQL queries)
+
+**Performance:**
+- String concatenation in loops (suggest strings.Builder)
+- Regex compilation in loops (Go-specific)
 
 ### Custom Rules
 Users can define regex-based rules in `.git-aps.yaml` under `custom_rules` with name, pattern, severity, description, and suggestion.
+
+### Helper Utilities
+- `rules.DetectLanguage(path)` — language detection from file extension (Go, Python, JS, TS, Java, Rust)
+- `rules.IsComment()`, `rules.IsBlankOrComment()`, `rules.StripComment()` — language-aware line analysis
+- Go-specific rules auto-skip non-Go files
 
 ## Commands
 - `go run ./cmd/git-aps` — run the app (TUI mode)
@@ -63,6 +85,8 @@ Users can define regex-based rules in `.git-aps.yaml` under `custom_rules` with 
 - `go run ./cmd/git-aps hook install` — install pre-commit hook
 - `go run ./cmd/git-aps hook uninstall` — remove pre-commit hook
 - `go test ./...` — run all tests
+- `go test ./... -v` — run all tests with verbose output
+- `go test ./... -cover` — run tests with coverage report
 - `go build -o git-aps ./cmd/git-aps` — build binary
 
 ## CLI Flags
