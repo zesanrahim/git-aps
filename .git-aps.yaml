@@ -1,0 +1,43 @@
+# git-aps configuration
+diff:
+  # What to diff: "staged", "unstaged", "head" (last commit), or "branch" (vs main)
+  mode: staged
+
+rules:
+  magic_numbers:
+    enabled: true
+    threshold: 2  # ignore 0, 1, 2
+  deep_nesting:
+    enabled: true
+    max_depth: 3
+  long_functions:
+    enabled: true
+    max_lines: 50
+  many_params:
+    enabled: true
+    max_params: 5
+  todo_comments:
+    enabled: true
+  error_ignored:
+    enabled: true
+
+# custom_rules:
+#   - name: no_println
+#     pattern: "fmt\\.Println"
+#     severity: low
+#     description: "Use structured logging instead of fmt.Println"
+#     suggestion: "Replace with log.Info() or slog.Info()"
+#   - name: no_hardcoded_urls
+#     pattern: "https?://[^\"'\\s]+"
+#     severity: med
+#     description: "Hardcoded URL detected"
+#     suggestion: "Extract URL to configuration or constants"
+
+ai:
+  enabled: true
+  model: gemini-2.5-flash
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai
+  # api_key: set via AI_API_KEY env var
+
+output:
+  min_severity: ""  # "low", "med", "high" — empty means show all

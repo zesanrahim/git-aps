@@ -1,0 +1,1 @@
+> purely vibe coded (bought claude code to practice w it??) but lets see how far i can get with an idea and ai 
